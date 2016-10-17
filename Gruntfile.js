@@ -37,35 +37,19 @@ module.exports = function(grunt) {
         }
       },
       less: {
-        dev: {
-          options: {
-            baseUrl: 'frontend/src',
-            src: [
-              'frontend/src/core/**/*.less',
-              'frontend/src/less/**/*.less',
-              'frontend/src/plugins/**/*.less'
-            ],
-            generateSourceMaps: true,
-            compress: false,
-            dest: 'frontend/src/adaptbuilder/css',
-            cssFilename: 'adapt.css',
-            mapFilename: 'adapt.css.map'
-          }
+        dist: {
+          files: [
+            {
+              'frontend/src/adaptbuilder/css/adapt.css': [
+                'frontend/src/core/**/*.less',
+                'frontend/src/less/**/*.less',
+                'frontend/src/plugins/**/*.less'
+              ]
+            }
+          ]
         },
-        compile: {
-          options: {
-            baseUrl: 'frontend/src',
-            src: [
-              'frontend/src/core/**/*.less',
-              'frontend/src/less/**/*.less',
-              'frontend/src/plugins/**/*.less'
-            ],
-            generateSourceMaps: false,
-            compress: true,
-            dest: 'frontend/src/adaptbuilder/css',
-            cssFilename: 'adapt.css',
-            mapFilename: 'adapt.css.map'
-          }
+        options: {
+          compress: true
         }
       },
       handlebars: {
@@ -157,13 +141,14 @@ module.exports = function(grunt) {
         },
         less: {
           files: ['frontend/src/**/*.less'],
-          tasks: ['less:dev']
+          tasks: ['less']
         },
         routes: {
           files: ['routes/**/*.*'],
           tasks: ['handlebars']
         }
       },
+    //Change this to run individual tests.
       casperjs: {
         files: ['./test_frontend/*.js', '!./test_frontend/login.js']
       },
@@ -227,14 +212,14 @@ module.exports = function(grunt) {
         // Save the configuration
         grunt.file.write(configFile, JSON.stringify(config, null, 2));
 
-        grunt.task.run(['requirePlugins', 'merge-json', 'copy', 'less:' + compilation, 'handlebars', 'requirejs:'+ compilation]);
+        grunt.task.run(['requirePlugins', 'merge-json', 'copy', 'less', 'handlebars', 'requirejs:'+ compilation]);
       } else {
-        grunt.task.run(['requirePlugins', 'copy', 'less:dev', 'handlebars', 'requirejs:dev']);
+        grunt.task.run(['requirePlugins', 'copy', 'less', 'handlebars', 'requirejs:dev']);
       }
     });
 
     grunt.registerTask('server', "Running Server", function() {
-      grunt.task.run(['requirePlugins', 'copy', 'less:dev', 'handlebars', 'open:server', 'watch']);
+      grunt.task.run(['requirePlugins', 'copy', 'less', 'handlebars', 'open:server', 'watch']);
     });
 
     // Compiles frontend plugins
@@ -270,77 +255,7 @@ module.exports = function(grunt) {
 
     });
 
-    grunt.registerMultiTask('less', 'Compile Less files to CSS', function() {
-      var path = require('path');
-      var less = require('less');
-      var options = this.options({});
-      var shouldGenerateSourceMaps = options.generateSourceMaps;
-      var destination = options.dest;
-      var mapFilename = options.mapFilename;
-      var imports = getImports();
-      var lessOptions = getLessOptions();
-      var sourceMapPath = path.join(destination, mapFilename);
-      var importsPath = sourceMapPath + '.imports';
-      var done = this.async();
-
-      if (!shouldGenerateSourceMaps) removeSourceMaps();
-
-      less.render(imports, lessOptions, complete);
-
-      function getImports() {
-        var src = options.src;
-        var ret = '';
-        var appendImport = function(lessPath) {
-          ret += '@import \'' + path.normalize(lessPath) + '\';\n';
-        };
-
-        for (var i = 0, l = src.length; i < l; i++) {
-          grunt.file.expand({ filter: options.filter }, src[i]).forEach(appendImport);
-        }
-
-        return ret;
-      }
-
-      function getLessOptions() {
-        var ret = { 'compress': options.compress };
-
-        if (shouldGenerateSourceMaps) {
-          ret.sourceMap = {
-            'sourceMapFileInline': false,
-            'outputSourceFiles': true,
-            'sourceMapBasepath': 'src',
-            'sourceMapURL': mapFilename,
-          };
-        }
-
-        return ret;
-      }
-
-      function removeSourceMaps() {
-        if (grunt.file.exists(sourceMapPath)) {
-          grunt.file.delete(sourceMapPath, { force: true });
-        }
-        if (grunt.file.exists(importsPath)) {
-          grunt.file.delete(importsPath, { force: true });
-        }
-      }
-
-      function complete(error, output) {
-        if (error) return grunt.fail.fatal(JSON.stringify(error, false, ' '));
-
-        var outputMap = output.map;
-
-        if (outputMap) {
-          grunt.file.write(sourceMapPath, outputMap);
-          grunt.file.write(importsPath, imports);
-        }
-
-        grunt.file.write(path.join(destination, options.cssFilename), output.css);
-        done();
-      }
-    });
-
-    grunt.registerTask('default',['requirePlugins', 'less:dev', 'handlebars', 'watch']);
+    grunt.registerTask('default',['requirePlugins', 'less', 'handlebars', 'watch']);
     grunt.registerTask('test',['mochaTest']);
     grunt.registerTask('test-ui', ['casperjs']);
 
