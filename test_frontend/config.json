@@ -1,7 +1,7 @@
-{"serverPort":"3000", 
-"username":"email@email.com", 
-"password":"password",
-"createCourseName" : "Name",
+{"serverPort":"5000",
+"username":"adam.royles@canstudios.com",
+"password":"testing123",
+"createCourseName" : "Auto testing course",
 "createCourseDescription" : "This is a description",
 "assetPath" : "./test_frontend/Data/adaptlearning.jpeg"
 }

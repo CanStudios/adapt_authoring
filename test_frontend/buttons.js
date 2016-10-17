@@ -10,9 +10,9 @@ casper.test.begin('Testing the buttons on the main page', 2, function suite(test
 	    casper.test.comment("Testing the buttons");
     });
 
-    casper.then(function() {
-	    this.click(".project-layout-list");
-    });
+    // casper.then(function() {
+	 //    this.click(".project-layout-list");
+    // });
 
     casper.then(function() {
 	    this.wait(1000, function() {
@@ -21,7 +21,7 @@ casper.test.begin('Testing the buttons on the main page', 2, function suite(test
     });
 
     casper.then(function() {
-	    this.click(".project-layout-grid");
+	    this.click('a[data-callback="dashboard:layout:grid"]');
     });
 
     casper.then(function() {
@@ -31,7 +31,7 @@ casper.test.begin('Testing the buttons on the main page', 2, function suite(test
     });
 
     casper.then(function() {
-	    this.click(".project-sort-asc");
+	    this.click('a[data-callback="dashboard:sort:asc"]');
     });
 
     casper.then(function() {
@@ -41,7 +41,15 @@ casper.test.begin('Testing the buttons on the main page', 2, function suite(test
     });
 
     casper.then(function() {
-	    this.click(".project-sort-desc");
+	    this.click('a[data-callback="dashboard:sort:desc"]');
+    });
+
+    casper.then(function() {
+    this.click('a[data-callback="dashboard:layout:list"]');
+    });
+
+    casper.then(function(){
+    this.click('a[data-callback="dashboard:sort:updated"]')
     });
 
     casper.then(function() {
@@ -52,6 +60,6 @@ casper.test.begin('Testing the buttons on the main page', 2, function suite(test
 
     casper.run(function() {
         test.done();
-    }); 	
+    });
 });
 
