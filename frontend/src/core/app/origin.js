@@ -54,6 +54,8 @@ define(function(require){
 
   Origin.helper = {};
 
+  Origin.project = {};
+
   Origin.editor.data = {};
 
   Origin.location = {};

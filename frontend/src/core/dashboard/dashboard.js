@@ -8,6 +8,9 @@ define(function(require) {
   var SharedProjectCollection = require('coreJS/project/collections/sharedProjectCollection');
   var TagsCollection = require('coreJS/tags/collections/tagsCollection');
 
+  var ProjectContentModel = require('coreJS/project/models/projectContentModel');
+  var ProjectContentCollection = require('coreJS/project/collections/projectContentCollection');
+
   Origin.on('router:dashboard', function(location, subLocation, action) {
 
     Origin.tap('dashboard', function() {
@@ -72,11 +75,27 @@ define(function(require) {
     switch (options.type) {
       case 'shared':
         Origin.trigger('location:title:update', {title: 'Dashboard - viewing shared courses'});
-        Origin.router.createView(DashboardView, {collection: new SharedProjectCollection});
+        var sharedProjectCollection = new SharedProjectCollection;
+        sharedProjectCollection.fetch({
+          success: function() {
+            sharedProjectCollection.each(function(project) {
+              setUpProjectData(project);
+            })
+          }
+        });
+        Origin.router.createView(DashboardView, {collection: sharedProjectCollection});
         break;
       case 'all':
         Origin.trigger('location:title:update', {title: 'Dashboard - viewing my courses'});
-        Origin.router.createView(DashboardView, {collection: new MyProjectCollection});
+        var myProjectCollection = new MyProjectCollection;
+        myProjectCollection.fetch({
+          success: function() {
+            myProjectCollection.each(function(project) {
+              setUpProjectData(project);
+            });
+          }
+        });
+        Origin.router.createView(DashboardView, {collection: myProjectCollection});
       default:
         break;
     }
@@ -99,5 +118,37 @@ define(function(require) {
   Origin.on('app:dataReady login:changed', function() {
     Origin.globalMenu.addItem(globalMenuObject);
   });
+
+  function setUpProjectData(project) {
+    Origin.project[project.id] = {};
+
+    Origin.project[project.id].contentObjects = new ProjectContentCollection([], {
+      model: ProjectContentModel,
+      url: '/api/content/contentobject?_courseId=' + project.id,
+      _type: 'contentObjects',
+      _projectId: project.id
+    });
+
+    Origin.project[project.id].articles = new ProjectContentCollection(null, {
+      model: ProjectContentModel,
+      url: '/api/content/article?_courseId=' + project.id,
+      _type: 'articles',
+      _projectId: project.id
+    });
+
+    Origin.project[project.id].blocks = new ProjectContentCollection(null, {
+      model: ProjectContentModel,
+      url: '/api/content/block?_courseId=' + project.id,
+      _type: 'blocks',
+      _projectId: project.id
+    });
+
+    Origin.project[project.id].components = new ProjectContentCollection(null, {
+      model: ProjectContentModel,
+      url: '/api/content/component?_courseId=' + project.id,
+      _type: 'components',
+      _projectId: project.id
+    });
+  };
 
 });
