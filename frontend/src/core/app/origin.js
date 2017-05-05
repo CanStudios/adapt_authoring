@@ -52,6 +52,8 @@ define(function(require){
 
   Origin.editor = {};
 
+  Origin.helper = {};
+
   Origin.editor.data = {};
 
   Origin.location = {};
