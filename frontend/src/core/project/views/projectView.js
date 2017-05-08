@@ -64,7 +64,6 @@ define(function(require){
       if (event) {
         event.preventDefault();
       }
-      console.log('attempting to download project')
 
       helpers.downloadProject(this.model);
     },
