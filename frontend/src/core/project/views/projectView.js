@@ -17,6 +17,7 @@ define(function(require){
       'click'                           : 'selectProject',
       'click a.open-context-course'     : 'openContextMenu',
       'click a.course-delete'           : 'deleteProjectPrompt',
+      'click a.course-download'         : 'downloadProject',
       'click .projects-details-tags-button-show' : 'onProjectShowTagsButtonClicked',
       'click .projects-details-tags-button-hide' : 'onProjectHideTagsButtonClicked',
       // Preview events
@@ -142,6 +143,10 @@ define(function(require){
           });
         }
       });
+    },
+
+    downloadProject: function() {
+
     },
 
     showLargePreview: function() {
