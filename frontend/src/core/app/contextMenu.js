@@ -95,6 +95,11 @@ define(function(require) {
         callbackEvent: 'duplicate'
       },
       {
+        title: window.polyglot.t('app.download'),
+        className: 'context-menu-item',
+        callbackEvent: 'downloadProject'
+      },
+      {
         title: window.polyglot.t('app.delete'),
         className: 'context-menu-item',
         callbackEvent: 'delete'

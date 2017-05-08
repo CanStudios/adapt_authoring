@@ -17,6 +17,7 @@ define(function(require){
       'dblclick'                        : 'editProject',
       'click'                           : 'selectProject',
       'click a.open-context-course'     : 'openContextMenu',
+      'click a.course-download'         : 'downloadProject',
       'click a.course-delete'           : 'deleteProjectPrompt',
       'click .projects-details-tags-button-show' : 'onProjectShowTagsButtonClicked',
       'click .projects-details-tags-button-hide' : 'onProjectHideTagsButtonClicked',
@@ -37,6 +38,7 @@ define(function(require){
       this.on('contextMenu:course:openPreview', this.openPreview);
       this.on('contextMenu:course:editSettings', this.editProjectSettings);
       this.on('contextMenu:course:edit', this.editProject);
+      this.on('contextMenu:course:downloadProject', this.downloadProject);
       this.on('contextMenu:course:delete', this.deleteProjectPrompt);
       this.on('contextMenu:course:duplicate', this.duplicateProject);
 
@@ -56,6 +58,15 @@ define(function(require){
       }
 
       helpers.previewProject(this.model, this.model.get('_id'));
+    },
+
+    downloadProject: function(event) {
+      if (event) {
+        event.preventDefault();
+      }
+      console.log('attempting to download project')
+
+      helpers.downloadProject(this.model);
     },
 
     editProjectSettings: function(event) {
