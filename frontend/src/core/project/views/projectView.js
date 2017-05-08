@@ -14,7 +14,7 @@ define(function(require){
     className: 'project-list-item',
 
     events: {
-      'dblclick'                        : 'editProject',
+      'dblclick'                        : 'openPreview',
       'click'                           : 'selectProject',
       'click a.open-context-course'     : 'openContextMenu',
       'click a.course-download'         : 'downloadProject',
