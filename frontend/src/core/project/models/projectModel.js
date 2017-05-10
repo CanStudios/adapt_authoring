@@ -12,6 +12,8 @@ define(function(require) {
 
     urlRoot: '/api/content/course',
 
+    _children: 'contentObjects',
+
     defaults: {
         'tags': [],
         _type: 'course',
@@ -35,6 +37,16 @@ define(function(require) {
 
     getDuplicateURI: function () {
       return '/api/duplicatecourse/' + this.get('_id');
+    },
+
+    getChildren: function() {
+      if (Origin.project[this.get('_id')].contentObjects) {
+        var children = Origin.project[this.get('_id')].contentObjects.where({_parentId: this.get('_id')});
+        var childrenCollection = new Backbone.Collection(children);
+        return childrenCollection;
+      } else {
+        return null;
+      }
     }
 
   });

@@ -75,6 +75,11 @@ define(function(require) {
 
     var courseContextItems = [
       {
+          title: window.polyglot.t('app.preview'),
+          className: 'context-menu-item',
+          callbackEvent: 'openPreview'
+      },
+      {
         title: window.polyglot.t('app.editsettings'),
         className: 'context-menu-item',
         callbackEvent: 'editSettings'
@@ -88,6 +93,11 @@ define(function(require) {
         title: window.polyglot.t('app.copy'),
         className: 'context-menu-item',
         callbackEvent: 'duplicate'
+      },
+      {
+        title: window.polyglot.t('app.download'),
+        className: 'context-menu-item',
+        callbackEvent: 'downloadProject'
       },
       {
         title: window.polyglot.t('app.delete'),

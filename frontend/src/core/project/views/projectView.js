@@ -3,6 +3,7 @@ define(function(require){
 
   var Backbone = require('backbone');
   var Handlebars = require('handlebars');
+  var helpers = require('coreJS/app/helpers');
   var OriginView = require('coreJS/app/views/originView');
   var Origin = require('coreJS/app/origin');
 
@@ -13,9 +14,10 @@ define(function(require){
     className: 'project-list-item',
 
     events: {
-      'dblclick'                        : 'editProject',
+      'dblclick'                        : 'openPreview',
       'click'                           : 'selectProject',
       'click a.open-context-course'     : 'openContextMenu',
+      'click a.course-download'         : 'downloadProject',
       'click a.course-delete'           : 'deleteProjectPrompt',
       'click .projects-details-tags-button-show' : 'onProjectShowTagsButtonClicked',
       'click .projects-details-tags-button-hide' : 'onProjectHideTagsButtonClicked',
@@ -33,8 +35,10 @@ define(function(require){
       this.listenTo(Origin, 'dashboard:projectView:itemSelected', this.deselectItem);
       this.listenTo(Origin, 'dashboard:dashboardView:deselectItem', this.deselectItem);
 
+      this.on('contextMenu:course:openPreview', this.openPreview);
       this.on('contextMenu:course:editSettings', this.editProjectSettings);
       this.on('contextMenu:course:edit', this.editProject);
+      this.on('contextMenu:course:downloadProject', this.downloadProject);
       this.on('contextMenu:course:delete', this.deleteProjectPrompt);
       this.on('contextMenu:course:duplicate', this.duplicateProject);
 
@@ -46,6 +50,22 @@ define(function(require){
       e.preventDefault();
 
       Origin.trigger('contextMenu:open', this, e);
+    },
+
+    openPreview: function(event) {
+      if (event) {
+          event.preventDefault();
+      }
+
+      helpers.previewProject(this.model, this.model.get('_id'));
+    },
+
+    downloadProject: function(event) {
+      if (event) {
+        event.preventDefault();
+      }
+
+      helpers.downloadProject(this.model);
     },
 
     editProjectSettings: function(event) {
