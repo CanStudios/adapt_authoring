@@ -7,8 +7,8 @@ module.exports = function(grunt) {
       pkg: grunt.file.readJSON('package.json'),
       "merge-json": {
         en: {
-            src: ['routes/lang/academy-en-application.json','frontend/src/plugins/**/lang/academy-en.json'],
-            dest: 'routes/lang/academy-en.json',
+            src: ['routes/lang/en-application.json','frontend/src/plugins/**/lang/en.json'],
+            dest: 'routes/lang/en.json',
         }
       },
       copy: {

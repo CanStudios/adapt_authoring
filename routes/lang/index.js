@@ -11,7 +11,7 @@ server.get('/lang/:lang', function (req, res, next) {
     fs.exists(filename, function(exists) {
         file = exists 
             ? require(filename)
-            : require(path.join(__dirname, 'academy-en') + '.json');
+            : require(path.join(__dirname, 'en') + '.json');
 
         return res.json(file);
     });
