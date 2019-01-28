@@ -163,7 +163,14 @@ define([
 
     for (var key in schema) {
       if (schema.hasOwnProperty(key)) {
-        setUpSchemaFields(schema[key], key, schema, scaffoldSchema);
+        // Check for nested properties on edit theme page
+        if (options.isTheme && schema[key].hasOwnProperty('properties')) {
+          for (var innerKey in schema[key].properties) {
+            setUpSchemaFields(schema[key].properties[innerKey], innerKey, schema[key].properties, scaffoldSchema);
+          }
+        } else {
+          setUpSchemaFields(schema[key], key, schema, scaffoldSchema);
+        }
       }
     }
 
@@ -201,6 +208,14 @@ define([
       // if value is an object, give it some rights and add it as field set
       if (fieldsets[key]) {
         fieldsets[key].fields.push(key);
+      } else if (options.isTheme) { // Check for nested properties on edit theme page
+        var innerFieldSets = [];
+        for (var innerKey in schema[key].properties) {
+          innerFieldSets.push(innerKey)
+          schema[innerKey] = _.pick(schema[key].properties[innerKey], 'default', 'help', 'inputType', 'title', 'type');
+        }
+        var legend = schema[key].title ? schema[key].title : Helpers.keyToTitleString(key);
+        fieldsets[key] = { key: key, legend: legend, fields: innerFieldSets };
       } else {
         fieldsets[key] = { key: key, legend: Helpers.keyToTitleString(key), fields: [ key ] };
       }
@@ -224,6 +239,7 @@ define([
   Scaffold.buildForm = function(options) {
     var model = options.model;
     var type = model.get('_type') || model._type || options.schemaType;
+    options.isTheme = false;
 
     switch (type) {
       case 'menu':
@@ -235,6 +251,7 @@ define([
         break;
       case 'theme':
         type = options.schemaType;
+        options.isTheme = true;
     }
 
     var schema = new Schemas(type);

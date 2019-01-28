@@ -63,6 +63,12 @@
     .form-container-style;
     .form-container {
       .legend {
+        display: block;
+        legend {
+          padding: 15px 0 10px 0;
+        }
+      }
+      .legend:only-child {
         display: none;
       }
       fieldset {
@@ -72,9 +78,11 @@
         .field {
           padding-left: 0;
         }
-      }
-      fieldset.fieldset-general {
-        margin-top: 0;
+        &.fieldset-general {
+          .legend {
+            display: none;
+          }
+        }
       }
     }
   }

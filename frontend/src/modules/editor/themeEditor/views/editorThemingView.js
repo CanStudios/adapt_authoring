@@ -179,17 +179,30 @@ define(function(require){
     restoreFormSettings: function(toRestore) {
       if(!this.form || !this.form.el) return;
 
-      for(var key in toRestore) {
-        var view = this.form.fields[key];
-        if(!view) {
-          continue;
+      for (var key in toRestore) {
+        // Check for nested properties
+        if (typeof toRestore[key] === 'object') {
+          for (var innerKey in toRestore[key]) {
+            this.restoreField(this.form.fields[innerKey], toRestore[key][innerKey], innerKey);
+          }
+        } else {
+          this.restoreField(this.form.fields[key], toRestore[key], key)
         }
-        if(view.schema.inputType === 'ColourPicker') {
-          view.setValue(toRestore[key]);
-        }
-        else {
-          view.editor.$el.val(toRestore[key].toString());
-        }
+      }
+    },
+
+    restoreField: function(fieldView, value, key) {
+      if (!fieldView) {
+        return;
+      }
+      if (fieldView.schema.inputType === 'ColourPicker') {
+        fieldView.setValue(value);
+      } else if (fieldView.schema.inputType.indexOf('Asset:') > -1) {
+        fieldView.setValue(value);
+        fieldView.render();
+        $('div[data-editor-id*="' + key + '"]').append(fieldView.editor.$el);
+      } else {
+        fieldView.editor.$el.val(value.toString())
       }
     },
 
@@ -226,7 +239,6 @@ define(function(require){
     // checks form for errors, returns boolean
     validateForm: function() {
       var selectedTheme = this.getSelectedTheme();
-      var selectedPreset = this.getSelectedPreset();
 
       if (selectedTheme === undefined) {
         Origin.Notify.alert({
@@ -245,7 +257,7 @@ define(function(require){
       var presetModel = new PresetModel({
         displayName: presetName,
         parentTheme: this.getSelectedTheme().get('_id'),
-        properties: _.pick(this.form.model.attributes, Object.keys(this.form.model.get('properties')))
+        properties: this.extractData(this.form.model.attributes)
       });
 
       var self = this;
@@ -285,21 +297,18 @@ define(function(require){
 
     postPresetData: function(callback) {
       var selectedPreset = this.getSelectedPreset(false);
-      if(selectedPreset) {
-        var selectedPresetId = selectedPreset.get('_id');
-        $.post('/api/themepreset/' + selectedPresetId + '/makeitso/' + this.model.get('_courseId'))
-        .error(_.bind(this.onSaveError, this))
-        .done(_.bind(callback, this));
-      } else {
-        callback.apply(this);
-      }
+      var selectedPresetId = null;
+      if (selectedPreset) selectedPresetId = selectedPreset.get('_id');
+
+      $.post('/api/themepreset/' + selectedPresetId + '/makeitso/' + this.model.get('_courseId'))
+      .error(_.bind(this.onSaveError, this))
+      .done(_.bind(callback, this));
     },
 
     postSettingsData: function(callback) {
       if(this.form) {
         this.form.commit();
-        var selectedTheme = this.getSelectedTheme();
-        var settings = _.pick(selectedTheme.attributes, Object.keys(selectedTheme.get('properties')));
+        var settings = this.extractData(this.form.model.attributes);
         Origin.editor.data.course.set('themeVariables', settings);
         Origin.editor.data.course.save(null, {
           error: _.bind(this.onSaveError, this),
@@ -308,6 +317,23 @@ define(function(require){
       } else {
         callback.apply(this);
       }
+    },
+
+    extractData: function(attributes) {
+      var data = {};
+      var properties = attributes.properties;
+      for (var key in properties) {
+        // Check for nested properties
+        if (typeof properties[key].properties !== 'undefined') {
+            data[key] = {};
+            for (var innerKey in properties[key].properties) {
+            data[key][innerKey] = attributes[innerKey];
+          }
+        } else {
+          data[key] = attributes[key];
+        }
+      }
+      return data;
     },
 
     navigateBack: function(event) {
@@ -344,9 +370,15 @@ define(function(require){
 
     getDefaultThemeSettings: function() {
       var defaults = {};
-      var props = this.getSelectedTheme().get('properties');
+      var props = this.getSelectedTheme().attributes.properties;
       for (var key in props) {
-        if (props.hasOwnProperty(key)) {
+        // Check for nested properties
+        if (typeof props[key].properties === 'object') {
+          defaults[key] = {};
+          for (var innerKey in props[key].properties) {
+            defaults[key][innerKey] = props[key].properties[innerKey].default;
+          }
+        } else {
           defaults[key] = props[key].default;
         }
       }
