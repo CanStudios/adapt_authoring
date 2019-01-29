@@ -1,16 +1,5 @@
-// @import '../../../less/sharedStyles.less';
-// @import '../../../less/variables.less';
-
-// HACK to fix icon positioning
 .sweet-alert .sa-input-error {
   top: 24px !important;
-}
-
-.sidebar {
-  .editor-theming-sidebar-savePreset {
-    height: 35px !important;
-    padding: 0;
-  }
 }
 
 .theming-inner {
@@ -51,15 +40,23 @@
         min-width: 150px;
       }
     }
-    .buttons-container {
+    .edit.btn.secondary {
       display: inline-block;
-      button {
-        padding: 7px;
-      }
+      padding: 7px;
+      margin-left: 15px;
     }
   }
 
   .theme-customiser {
+    .buttons-container {
+      float: right;
+      button {
+        height: 35px !important;
+        padding: 7px;
+        margin: 10px 10px 0 0;
+      }
+    }
+
     .form-container-style;
     .form-container {
       .legend {
@@ -68,12 +65,8 @@
           padding: 15px 0 10px 0;
         }
       }
-      .legend:only-child {
-        display: none;
-      }
       fieldset {
-        border: none;
-        padding-bottom: 0;
+        padding: 0 20px 10px 20px;
         max-width: none;
         .field {
           padding-left: 0;
@@ -82,6 +75,14 @@
           .legend {
             display: none;
           }
+        }
+        &.empty-fieldset {
+          .legend {
+            display: none;
+          }
+          padding: 0;
+          margin: 0;
+          border: none;
         }
       }
     }
