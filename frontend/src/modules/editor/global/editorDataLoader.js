@@ -89,8 +89,11 @@ define(function(require) {
         });
       }
       // fetch all collections
-      fetchEditorData(courseData, function() {
+      fetchEditorData(courseData, function(error) {
         if(_.isFunction(callback)) callback();
+        if (error) {
+          Origin.trigger('editor:failedToLoad');
+        }
         loadingCourseData = false;
         Origin.trigger('editor:dataLoaded');
       });
@@ -107,11 +110,21 @@ define(function(require) {
     waitForLoad: function(callback) {
       var done = function() {
         if(preloader.hasLoadedData()) {
-          Origin.off('editor:dataPreloaded', done);
-          Origin.off('editor:dataLoaded', done);
+          Origin.off({
+            'editor:dataPreloaded': done,
+            'editor:dataLoaded': done,
+            'editor:failedToLoad': removeEvents
+          });
           callback.apply(this);
         }
-      }
+      };
+      var removeEvents = function() {
+        Origin.off({
+          'editor:dataPreloaded': done,
+          'editor:dataLoaded': done,
+          'editor:failedToLoad': removeEvents
+        });
+      };
       // in case we've already loaded
       done();
 
@@ -121,6 +134,7 @@ define(function(require) {
       if(!preloader.hasLoadedCourseData()) {
         Origin.on('editor:dataLoaded', done);
       }
+      Origin.on('editor:failedToLoad', removeEvents);
     },
     /**
     * Uses the below checks to test loading status
@@ -176,7 +190,10 @@ define(function(require) {
           data[collection._type] = true;
           if(callback && isAllDataLoaded(data)) callback.apply(this);
         },
-        error: onFetchError
+        error: function(error) {
+          onFetchError();
+          callback(error);
+        }
       });
     }
   }
@@ -216,6 +233,7 @@ define(function(require) {
       type: 'error',
       text: Origin.l10n.t('app.errorgeneric')
     });
+    Origin.router.navigateTo('dashboard');
   }
 
   /**
