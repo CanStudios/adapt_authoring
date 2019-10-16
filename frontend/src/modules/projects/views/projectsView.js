@@ -29,8 +29,8 @@ define(function(require){
 
       this.listenTo(Origin, {
         'window:resize dashboard:refresh': this._onResize,
-        'dashboard:dashboardSidebarView:filterBySearch': function(text) { this.doFilter(text) },
-        'dashboard:dashboardSidebarView:filterByTags': function(tags) { this.doFilter(null, tags) },
+        'dashboard:dashboardSidebarView:filterBySearch': function(searchObject) { this.doFilter(searchObject.title, searchObject.tags) },
+        'dashboard:dashboardSidebarView:filterByTags': function(searchObject) { this.doFilter(searchObject.title, searchObject.tags) },
         'dashboard:sort:asc': function() { this.doSort('asc'); },
         'dashboard:sort:desc': function() { this.doSort('desc'); },
         'dashboard:sort:updated': function() { this.doSort('updated'); }

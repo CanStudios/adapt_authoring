@@ -63,10 +63,12 @@ define(function(require) {
     },
 
     filterProjectsByTitle: function(event, filter) {
+      var filterText = $('.projects-sidebar-filter-search-input').val().trim();
       event && event.preventDefault();
-
-      var filterText = $(event.currentTarget).val().trim();
-      Origin.trigger('dashboard:dashboardSidebarView:filterBySearch', filterText);
+      Origin.trigger('dashboard:dashboardSidebarView:filterByTags', {
+        tags: this.tags,
+        title: filterText
+      });
       this.highlightSearchBox();
     },
 
@@ -116,6 +118,7 @@ define(function(require) {
     },
 
     filterProjectsByTags: function(tag) {
+      var filterText = $('.projects-sidebar-filter-search-input').val().trim();
       // toggle tag
       if (_.findWhere(this.tags, { id: tag.id } )) {
         this.tags = _.reject(this.tags, function(tagItem) {
@@ -124,7 +127,11 @@ define(function(require) {
       } else {
         this.tags.push(tag);
       }
-      Origin.trigger('dashboard:dashboardSidebarView:filterByTags', this.tags);
+
+      Origin.trigger('dashboard:dashboardSidebarView:filterByTags', {
+        tags: this.tags,
+        title: filterText
+      });
     },
 
     addTagToSidebar: function(tag) {
