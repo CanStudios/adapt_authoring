@@ -55,10 +55,16 @@ function publishCourse(courseId, mode, request, response, next) {
         if (err) {
           return callback(err);
         }
-        // Replace the theme in outputJson with the applied theme name.
-        themeName = appliedThemeName;
-        outputJson['config'][0]._theme = themeName;
-        callback(null);
+
+        self.writeCustomStyle(tenantId, courseId, temporaryThemeFolder, function(err) {
+          if (err) {
+            return callback(err);
+          }
+          // Replace the theme in outputJson with the applied theme name.
+          themeName = appliedThemeName;
+          outputJson['config'][0]._theme = themeName;
+          callback(null);
+        });
       });
     },
     function(callback) {
@@ -76,16 +82,14 @@ function publishCourse(courseId, mode, request, response, next) {
         if (err) {
           return callback(err);
         }
-        isRebuildRequired = exists;
-        callback(null);
-      });
-    },
-    function(callback) {
-      var temporaryThemeFolder = path.join(SRC_FOLDER, Constants.Folders.Theme, customPluginName);
-      self.writeCustomStyle(tenantId, courseId, temporaryThemeFolder, function(err) {
-        if (err) {
-          return callback(err);
+
+        if (mode === Constants.Modes.Export || mode === Constants.Modes.Publish) {
+          isRebuildRequired = true;
+          return callback(null);
         }
+
+        const isForceRebuld = (request) ? request.query.force === 'true' : false;
+        isRebuildRequired = exists || isForceRebuld;
         callback(null);
       });
     },

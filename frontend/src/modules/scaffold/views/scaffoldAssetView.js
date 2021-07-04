@@ -31,8 +31,7 @@ define([
       if (!Helpers.isAssetExternal(this.value)) {
         // don't have asset ID, so query courseassets for matching URL && content ID
         this.fetchCourseAsset({
-          _fieldName: this.value.split('/').pop(),
-          _contentTypeId: Origin.scaffold.getCurrentModel().get('_id')
+          _fieldName: this.value.split('/').pop()
         }, function(error, collection) {
           if (error) return console.error(error);
 
@@ -126,16 +125,18 @@ define([
           return;
         }
 
-        // delete all matching courseassets and then saveModel
-        Helpers.forParallelAsync(courseassets, function(model, index, cb) {
-          model.destroy({
-            success: cb,
-            error: function() {
-              console.error('Failed to destroy courseasset record', model.get('_id'));
-              cb();
-            }
-          });
-        }, this.saveModel.bind(this));
+        var listModels = courseassets.models ? courseassets.models.slice() : courseassets.slice();
+        var listModel = listModels[0];
+
+        if (!listModel) return;
+
+        listModel.destroy({
+          success: this.saveModel(),
+          error: function() {
+            console.error('Failed to destroy courseasset record', listModel.get('_id'));
+            return;
+          }
+        });
       }.bind(this));
     },
 
