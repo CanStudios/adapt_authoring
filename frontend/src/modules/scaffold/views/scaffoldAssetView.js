@@ -10,6 +10,8 @@ define([
 
   var ScaffoldAssetView = Backbone.Form.editors.Base.extend({
 
+    assetType: null,
+
     events: {
       'change input': function() { this.trigger('change', this); },
       'focus input': function() { this.trigger('focus', this); },
@@ -31,8 +33,7 @@ define([
       if (!Helpers.isAssetExternal(this.value)) {
         // don't have asset ID, so query courseassets for matching URL && content ID
         this.fetchCourseAsset({
-          _fieldName: this.value.split('/').pop(),
-          _contentTypeId: Origin.scaffold.getCurrentModel().get('_id')
+          _fieldName: this.value.split('/').pop()
         }, function(error, collection) {
           if (error) return console.error(error);
 
@@ -53,11 +54,15 @@ define([
       var inputType = this.schema.inputType;
       var dataUrl = Helpers.isAssetExternal(this.value) ? this.value : '';
 
+      this.assetType = typeof inputType === 'string' ?
+        inputType.replace(/Asset|:/g, '') :
+        inputType.media;
+
       this.$el.html(Handlebars.templates[this.constructor.template]({
         value: this.value,
-        type: inputType.media || inputType.replace('Asset:', ''),
-        url: id ? '/api/asset/serve/' + id : dataUrl,
-        thumbUrl: id ? '/api/asset/thumb/' + id : dataUrl
+        type: this.assetType,
+        url: id ? 'api/asset/serve/' + id : dataUrl,
+        thumbUrl: id ? 'api/asset/thumb/' + id : dataUrl
       }));
     },
 
@@ -98,7 +103,7 @@ define([
 
     fetchCourseAsset: function(searchCriteria, cb) {
       if (!searchCriteria._contentTypeId) {
-        searchCriteria._contentTypeParentId = Origin.editor.data.course.get('_id');
+        searchCriteria._courseId = Origin.editor.data.course.get('_id');
       }
 
       (new ContentCollection(null, { _type: 'courseasset' })).fetch({
@@ -126,16 +131,18 @@ define([
           return;
         }
 
-        // delete all matching courseassets and then saveModel
-        Helpers.forParallelAsync(courseassets, function(model, index, cb) {
-          model.destroy({
-            success: cb,
-            error: function() {
-              console.error('Failed to destroy courseasset record', model.get('_id'));
-              cb();
-            }
-          });
-        }, this.saveModel.bind(this));
+        var listModels = courseassets.models ? courseassets.models.slice() : courseassets.slice();
+        var listModel = listModels[0];
+
+        if (!listModel) return;
+
+        listModel.destroy({
+          success: this.saveModel(),
+          error: function() {
+            console.error('Failed to destroy courseasset record', listModel.get('_id'));
+            return;
+          }
+        });
       }.bind(this));
     },
 
@@ -199,7 +206,7 @@ define([
 
       Origin.trigger('modal:open', AssetManagementModalView, {
         collection: new AssetCollection,
-        assetType: this.schema.inputType,
+        assetType: this.assetType,
         _shouldShowScrollbar: false,
         onUpdate: function(data) {
           if (!data) return;

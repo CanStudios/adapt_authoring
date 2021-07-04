@@ -23,9 +23,10 @@ define([ 'core/origin', 'backbone-forms' ], function(Origin, BackboneForms) {
       this.$el.selectize({
         create: true,
         labelField: 'title',
+        loadingClass: 'selectize-loading',
         load: function(query, callback) {
           $.ajax({
-            url: '/api/autocomplete/tag',
+            url: 'api/autocomplete/tag',
             method: 'GET',
             error: callback,
             success: callback
@@ -59,7 +60,7 @@ define([ 'core/origin', 'backbone-forms' ], function(Origin, BackboneForms) {
 
     onAddTag: function(value) {
       $.ajax({
-        url: '/api/content/tag',
+        url: 'api/content/tag',
         method: 'POST',
         data: { title: value }
       }).done(function(data) {

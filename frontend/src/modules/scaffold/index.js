@@ -6,16 +6,17 @@ define([
   'backbone-forms-lists',
   './backboneFormsOverrides',
   './views/scaffoldAssetView',
+  './views/scaffoldAssetItemView',
   './views/scaffoldCodeEditorView',
   './views/scaffoldColourPickerView',
   './views/scaffoldDisplayTitleView',
   './views/scaffoldItemsModalView',
   './views/scaffoldListView',
-  './views/scaffoldTagsView'
-], function(Origin, Helpers, Schemas, BackboneForms, BackboneFormsLists, Overrides, ScaffoldAssetView, ScaffoldCodeEditorView, ScaffoldColourPickerView, ScaffoldDisplayTitleView, ScaffoldItemsModalView, ScaffoldListView, ScaffoldTagsView) {
+  './views/scaffoldTagsView',
+  './views/scaffoldUsersView'
+], function(Origin, Helpers, Schemas, BackboneForms, BackboneFormsLists, Overrides, ScaffoldAssetView, ScaffoldAssetItemView, ScaffoldCodeEditorView, ScaffoldColourPickerView, ScaffoldDisplayTitleView, ScaffoldItemsModalView, ScaffoldListView, ScaffoldTagsView, ScaffoldUsersView) {
 
   var Scaffold = {};
-  var builtSchemas = {};
   var alternativeModel;
   var alternativeAttribute;
   var currentModel;
@@ -30,7 +31,6 @@ define([
 
   function onScaffoldUpdateSchemas(callback, context) {
     Origin.trigger('schemas:loadData', function() {
-      builtSchemas = {};
       callback.apply(context);
     });
   }
@@ -52,7 +52,7 @@ define([
       }
 
       if (!isFieldTypeObject) {
-        return Backbone.Form.Field.prototype.createTitle.call({ key: key }); 
+        return Backbone.Form.Field.prototype.createTitle.call({ key: key });
       }
     };
 
@@ -144,32 +144,25 @@ define([
   }
 
   function buildSchema(schema, options, type) {
-    // these types of schemas change frequently and cannot be cached
-    var isVolatileType = _.contains([
-      'course',
-      'config',
-      'article',
-      'block',
-      'component'
-    ], type);
-
-    var builtSchema = builtSchemas[type];
-
-    if (!isVolatileType && builtSchema) {
-      return builtSchema;
-    }
 
     var scaffoldSchema = {};
 
     for (var key in schema) {
-      if (schema.hasOwnProperty(key)) {
-        setUpSchemaFields(schema[key], key, schema, scaffoldSchema);
-      }
-    }
+      if (!schema.hasOwnProperty(key)) continue;
 
-    // only cache non-volatile types
-    if (!isVolatileType) {
-      builtSchemas[type] = scaffoldSchema;
+      var field = schema[key];
+      var nestedProps = field.properties;
+
+      if (!options.isTheme || !nestedProps) {
+        setUpSchemaFields(field, key, schema, scaffoldSchema);
+        continue;
+      }
+
+      // process nested properties on edit theme page
+      for (var innerKey in nestedProps) {
+        if (!nestedProps.hasOwnProperty(innerKey)) continue;
+        setUpSchemaFields(nestedProps[innerKey], innerKey, nestedProps, scaffoldSchema);
+      }
     }
 
     return scaffoldSchema;
@@ -198,12 +191,28 @@ define([
         continue;
       }
 
-      // if value is an object, give it some rights and add it as field set
       if (fieldsets[key]) {
         fieldsets[key].fields.push(key);
-      } else {
-        fieldsets[key] = { key: key, legend: Helpers.keyToTitleString(key), fields: [ key ] };
+        continue;
       }
+
+      var nestedProps = value.properties;
+      var fields = [];
+
+      // process nested properties on edit theme page
+      if (options.isTheme) {
+        for (var innerKey in nestedProps) {
+          if (nestedProps.hasOwnProperty(innerKey)) {
+            fields.push(innerKey);
+          }
+        }
+      }
+
+      fieldsets[key] = {
+        key: key,
+        legend: value.title || Helpers.keyToTitleString(key),
+        fields: fields.length ? fields : [ key ]
+      };
     }
 
     if (!schema._extensions) {
@@ -223,7 +232,8 @@ define([
 
   Scaffold.buildForm = function(options) {
     var model = options.model;
-    var type = model.get('_type') || model._type;
+    var type = model.get('_type') || model._type || options.schemaType;
+    options.isTheme = false;
 
     switch (type) {
       case 'menu':
@@ -232,10 +242,16 @@ define([
         break;
       case 'component':
         type = model.get('_component');
+        break;
+      case 'theme':
+        type = options.schemaType;
+        options.isTheme = true;
     }
 
     var schema = new Schemas(type);
-
+    if (options.isTheme) {
+      schema = schema.variables;
+    }
     options.model.schema = buildSchema(schema, options, type);
     options.fieldsets = buildFieldsets(schema, options);
     alternativeModel = options.alternativeModelToSave;

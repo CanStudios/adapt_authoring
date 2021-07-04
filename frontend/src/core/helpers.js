@@ -44,7 +44,8 @@ define(function(require){
         return Origin.l10n.t(l10nKey);
       }
       // fall-back: remove all _ and capitalise
-      return this.capitalise(key.replace(/_/g, "").toLowerCase());
+      var string = key.replace(/_/g, '').replace(/[A-Z]/g, ' $&').toLowerCase();
+      return this.capitalise(string);
     },
 
     momentFormat: function(date, format) {
@@ -115,6 +116,12 @@ define(function(require){
       return new Handlebars.SafeString(html);
     },
 
+    escapeText: function(text) {
+      var div = document.createElement('div');
+      div.appendChild(document.createTextNode(text));
+      return div.innerHTML;
+    },
+
     bytesToSize: function(bytes) {
       if (bytes === 0) return '0 B';
 
@@ -163,12 +170,6 @@ define(function(require){
         html += '<li class="tag-item" title="' + tag + '"><span class="tag-value">' + tag  + '</span></li>';
       }
       return new Handlebars.SafeString(html + '</ul>');
-    },
-
-    decodeHTML: function(html) {
-      var el = document.createElement('div');
-      el.innerHTML = html;
-      return el.childNodes.length === 0 ? "" : el.childNodes[0].nodeValue;
     },
 
     ifHasPermissions: function(permissions, block) {
@@ -225,37 +226,6 @@ define(function(require){
       document.body.removeChild(textArea);
 
       return success;
-    },
-
-    // checks for at least one child object
-    validateCourseContent: function(currentCourse, callback) {
-      var containsAtLeastOneChild = true;
-      var alerts = [];
-      var iterateOverChildren = function(model, index, doneIterator) {
-        if(!model._childTypes) {
-          return doneIterator();
-        }
-        model.fetchChildren(function(currentChildren) {
-          if (currentChildren.length > 0) {
-            return helpers.forParallelAsync(currentChildren, iterateOverChildren, doneIterator);
-          }
-          containsAtLeastOneChild = false;
-          var children = _.isArray(model._childTypes) ? model._childTypes.join('/') : model._childTypes;
-          alerts.push(model.get('_type') + " '" + model.get('title') + "' missing " + children);
-          doneIterator();
-        });
-      };
-      // start recursion
-      iterateOverChildren(currentCourse, null, function() {
-        var errorMessage = "";
-        if(alerts.length > 0)  {
-          for(var i = 0, len = alerts.length; i < len; i++) {
-            errorMessage += "<li>" + alerts[i] + "</li>";
-          }
-          return callback(new Error(errorMessage));
-        }
-        callback(null, true);
-      });
     },
 
     isValidEmail: function(value) {
@@ -335,6 +305,32 @@ define(function(require){
         '<span class="max-fileupload-size">',
         Origin.l10n.t('app.maxfileuploadsize', {size: Origin.constants.humanMaxFileUploadSize}),
         '</span>'].join(''))
+    },
+
+    flattenNestedProperties: function(properties) {
+      if (!properties) return {};
+      var flatProperties = {};
+      for (var key in properties) {
+        // Check for nested properties
+        if (typeof properties[key] === 'object') {
+          for (var innerKey in properties[key]) {
+            // Check if key already exists
+            if (flatProperties[innerKey]) {
+              flatProperties[key+'.'+innerKey] = properties[key][innerKey];
+            } else {
+              flatProperties[innerKey] = properties[key][innerKey];
+            }
+          }
+        } else {
+          flatProperties[key] = properties[key];
+        }
+      }
+      return flatProperties;
+    },
+
+    importConstants: function() {
+      this.constants = Origin.constants;
+      return '';
     }
   };
 

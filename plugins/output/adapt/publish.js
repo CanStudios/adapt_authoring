@@ -12,31 +12,43 @@ const helpers = require('../../../lib/helpers');
 const installHelpers = require('../../../lib/installHelpers');
 const logger = require('../../../lib/logger');
 const origin = require('../../../');
+const outputHelpers = require('./outputHelpers');
 const usermanager = require('../../../lib/usermanager');
 
 function publishCourse(courseId, mode, request, response, next) {
-  var app = origin();
-  var self = this;
-  var user = usermanager.getCurrentUser();
-  var tenantId = user.tenant._id;
-  var outputJson = {};
-  var isRebuildRequired = false;
-  var themeName;
-  var menuName;
-  var frameworkVersion;
+  let app = origin();
+  let self = this;
+  let user = usermanager.getCurrentUser();
+  let tenantId = user.tenant._id;
+  let outputJson = {};
+  let isRebuildRequired = false;
+  let themeName;
+  let menuName;
+  let frameworkVersion;
+  let isForceRebuild;
 
-  var resultObject = {};
+  let resultObject = {};
 
   // shorthand directories
-  var FRAMEWORK_ROOT_FOLDER = path.join(configuration.tempDir, configuration.getConfig('masterTenantID'), Constants.Folders.Framework);
-  var SRC_FOLDER = path.join(FRAMEWORK_ROOT_FOLDER, Constants.Folders.Source);
-  var COURSES_FOLDER = path.join(FRAMEWORK_ROOT_FOLDER, Constants.Folders.AllCourses);
-  var COURSE_FOLDER = path.join(COURSES_FOLDER, tenantId, courseId);
-  var BUILD_FOLDER = path.join(COURSE_FOLDER, Constants.Folders.Build);
+  const FRAMEWORK_ROOT_FOLDER = path.join(configuration.tempDir, configuration.getConfig('masterTenantID'), Constants.Folders.Framework);
+  const SRC_FOLDER = path.join(FRAMEWORK_ROOT_FOLDER, Constants.Folders.Source);
+  const COURSES_FOLDER = path.join(FRAMEWORK_ROOT_FOLDER, Constants.Folders.AllCourses);
+  const COURSE_FOLDER = path.join(COURSES_FOLDER, tenantId, courseId);
+  const BUILD_FOLDER = path.join(COURSE_FOLDER, Constants.Folders.Build);
 
-  var customPluginName = user._id;
+  let customPluginName = user._id;
 
-  async.series([
+  const getGruntFatalError = stdout => {
+    const indexStart = stdout.indexOf('\nFatal error: ');
+
+    if (indexStart === -1) return;
+
+    const indexEnd = stdout.indexOf('\n\nExecution Time');
+
+    return stdout.substring(indexStart, indexEnd !== -1 ? indexEnd : stdout.length);
+  }
+
+  async.waterfall([
     // get an object with all the course data
     function(callback) {
       self.getCourseJSON(tenantId, courseId, function(err, data) {
@@ -48,6 +60,16 @@ function publishCourse(courseId, mode, request, response, next) {
         callback(null);
       });
     },
+    // validate the course data
+    function(callback) {
+      outputHelpers.validateCourse(outputJson, function(error, isValid) {
+        if (error || !isValid) {
+          return callback({ message: error });
+        }
+
+        callback(null);
+      });
+    },
     //
     function(callback) {
       var temporaryThemeFolder = path.join(SRC_FOLDER, Constants.Folders.Theme, customPluginName);
@@ -55,10 +77,16 @@ function publishCourse(courseId, mode, request, response, next) {
         if (err) {
           return callback(err);
         }
-        // Replace the theme in outputJson with the applied theme name.
-        themeName = appliedThemeName;
-        outputJson['config'][0]._theme = themeName;
-        callback(null);
+
+        self.writeCustomStyle(tenantId, courseId, temporaryThemeFolder, function(err) {
+          if (err) {
+            return callback(err);
+          }
+          // Replace the theme in outputJson with the applied theme name.
+          themeName = appliedThemeName;
+          outputJson['config'][0]._theme = themeName;
+          callback(null);
+        });
       });
     },
     function(callback) {
@@ -76,18 +104,22 @@ function publishCourse(courseId, mode, request, response, next) {
         if (err) {
           return callback(err);
         }
-        isRebuildRequired = exists;
+
+        if (mode === Constants.Modes.Export || mode === Constants.Modes.Publish) {
+          isRebuildRequired = true;
+          return callback(null);
+        }
+
+        isForceRebuild = (request) ? request.query.force === 'true' : false;
+        isRebuildRequired = exists || isForceRebuild;
         callback(null);
       });
     },
     function(callback) {
-      var temporaryThemeFolder = path.join(SRC_FOLDER, Constants.Folders.Theme, customPluginName);
-      self.writeCustomStyle(tenantId, courseId, temporaryThemeFolder, function(err) {
-        if (err) {
-          return callback(err);
-        }
-        callback(null);
-      });
+      if (mode === Constants.Modes.Export || mode === Constants.Modes.Publish || isForceRebuild) {
+        fs.emptyDirSync(BUILD_FOLDER);
+      }
+      callback(null);
     },
     function(callback) {
       var temporaryMenuFolder = path.join(SRC_FOLDER, Constants.Folders.Menu, customPluginName);
@@ -160,6 +192,7 @@ function publishCourse(courseId, mode, request, response, next) {
             if (error !== null) {
               logger.log('error', 'exec error: ' + error);
               logger.log('error', 'stdout error: ' + stdout);
+              error.message += getGruntFatalError(stdout) || '';
               resultObject.success = true;
               return callback(error, 'Error building framework');
             }
@@ -185,10 +218,14 @@ function publishCourse(courseId, mode, request, response, next) {
           });
       });
     },
-    function(callback) {
+    function(err, callback) {
       self.clearBuildFlag(path.join(BUILD_FOLDER, Constants.Filenames.Rebuild), function(err) {
         callback(null);
       });
+    },
+    function(callback) {
+      const configPath = path.join(BUILD_FOLDER, Constants.Folders.Course, Constants.CourseCollections.config.filename);
+      self.removeBuildIncludes(configPath, err => callback(err));
     },
     function(callback) {
       if (mode === Constants.Modes.Preview) { // No download required -- skip this step

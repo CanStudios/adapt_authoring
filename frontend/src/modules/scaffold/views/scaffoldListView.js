@@ -1,10 +1,14 @@
 define([
   'core/origin',
+  'core/helpers',
+  'core/models/courseAssetModel',
   'backbone-forms',
   'backbone-forms-lists'
-], function(Origin, BackboneForms) {
+], function(Origin, Helpers, CourseAssetModel, BackboneForms) {
 
   var ScaffoldListView = Backbone.Form.editors.List.extend({
+    defaultValue: [],
+
     render: function() {
       var instance = Backbone.Form.editors.__List.prototype.render.apply(this, arguments);
       // set-up drag 'n drop
@@ -81,10 +85,61 @@ define([
     }
   });
 
+  var ScaffoldListItemView = Backbone.Form.editors.List.Item.extend({
+
+    events: function() {
+      return _.extend({}, Backbone.Form.editors.__List.__Item.prototype.events, {
+        'click [data-action="clone"]': 'cloneItem'
+      });
+    },
+
+    cloneItem: function(event) {
+      var flatItem = Helpers.flattenNestedProperties(this.editor.value);
+      var itemValues = _.values(flatItem);
+      var parentAttributes = Origin.scaffold.getCurrentModel().attributes;
+      var parentId = parentAttributes._type === 'course' ? parentAttributes._id : parentAttributes._parentId;
+      itemValues.forEach(function(item) {
+        if (typeof item !== 'string' || item.indexOf('course/assets') === -1) return;
+
+        var itemFileName = item.substring(item.lastIndexOf('/')+1);
+        $.ajax({
+          url: 'api/asset/query',
+          type:'GET',
+          data: {search: { filename: itemFileName }},
+          success: function (result) {
+            (new CourseAssetModel()).save({
+              _courseId : Origin.editor.data.course.get('_id'),
+              _contentType : parentAttributes._type,
+              _contentTypeId : parentAttributes._id,
+              _fieldName : itemFileName,
+              _assetId : result[0]._id,
+              _contentTypeParentId: parentId
+            }, {
+              error: function(error) {
+                Origin.Notify.alert({
+                  type: 'error',
+                  text: Origin.l10n.t('app.errorsaveasset')
+                });
+              }
+            });
+          },
+          error: function() {
+            Origin.Notify.alert({ type: 'error', text: Origin.l10n.t('app.errorduplication') });
+          }
+        });
+      });
+
+      this.list.addItem(this.editor.value, true);
+    }
+  });
+
   Origin.on('origin:dataReady', function() {
     // NOTE override default list view (keep the old one in case...)
     Backbone.Form.editors.__List = Backbone.Form.editors.List;
+    Backbone.Form.editors.__List.__Item = Backbone.Form.editors.List.Item;
+
     Backbone.Form.editors.List = ScaffoldListView;
+    Backbone.Form.editors.List.Item = ScaffoldListItemView;
     // overrides
     Backbone.Form.editors.List.prototype.constructor.template = Handlebars.templates.list;
     Backbone.Form.editors.List.Item.prototype.constructor.template = Handlebars.templates.listItem;
